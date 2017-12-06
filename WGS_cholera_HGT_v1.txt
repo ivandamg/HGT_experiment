@@ -1,0 +1,524 @@
+#############################################################################################################
+################################################ LAB BOOK ###################################################
+###################################### Ivan MATEUS UPBLO LAB ################################################
+########################################## Cholera analysis #################################################
+
+###########   	16 May 2017	#############################################################################
+#############################################################################################################
+######### Comparison of mapping across different softwares
+
+1. Install novoalign, bowtie2, bwa, etc.
+2. Trimming
+3. Quality filter the reads Q30. trimmomatic
+4. Map reads to given references.
+5. filter alignment quality reads Q30 bam 
+6. Make coverage plot
+7. Compare SNP
+8. Calculate gap and indel distance.
+
+
+
+
+
+#############################################################################################################
+
+1. Mapper installation
+
+
+
+
+
+
+
+#############################################################################################################
+
+2. Trimming
+export PATH=/Users/imateusg/DATA/software/ncbi-blast-2.3.0+/bin:$PATH # put the location in your path to use programs
+
+
+for folder in $(ls -d raw_fq/); do echo "-> "$folder; cd $folder; a=0;for i in $(ls *.fastq.gz | sort -t'_' -k4); do echo $i;a=$((a + 1)); bsub -q dee-hugemem -L /bin/bash -J Trimmomatic$a -u ivandario.mateusgonzalez@unil.ch -R "rusage[mem=32000]" -M 32000000 -N "java -jar /home/imateus/Software/Trimmomatic-0.36/trimmomatic-0.36.jar SE -phred33  /scratch/beegfs/monthly/imateus/microRNA/raw_fq/$i /scratch/beegfs/monthly/imateus/microRNA/$(echo $i | cut -d'_' -f1,2,3,4,5)_Trim.fastq.gz ILLUMINACLIP:/home/imateus/Software/Trimmomatic-0.36/adapters/NEXTflex_miRNA_3p.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:18 HEADCROP:4 CROP:96";  cd .. ; done;done
+
+
+#############################################################################################################
+
+3. Quality filter
+
+# working in base directory  /home/imateus/Documents/V_cholerae/test1/ref_VCA0107/T0*
+
+
+a=0;for i in $(ls *_R1_[0-9]*.fastq.gz | sort -t'_' -k3); do a=$((a + 1)); b=$(echo $i | cut -d'.' -f1 | cut -d'_' -f5); c=$(ls *_R2*$b*.fastq.gz); echo $i" "$c ;  java -jar /home/imateus/software/Trimmomatic-0.36/trimmomatic-0.36.jar PE -phred33 $i $c $(echo $i | cut -d'_' -f1,2,3)_Trimm_Pair.fastq.gz $(echo $i | cut -d'_' -f1,2,3)_Trimm_Unpair.fastq.gz $(echo $c | cut -d'_' -f1,2,3)_Trimm_Pair.fastq.gz $(echo $c | cut -d'_' -f1,2,3)_Trimm_Unpair.fastq.gz LEADING:3 TRAILING:3 SLIDINGWINDOW:4:20 MINLEN:50;  done
+
+
+# leading base quality 3
+# trailing base quality 3
+# phred quality of sequence, by sliding window of 4 bases and minimum phred score of 20
+# minimum length 50$
+# processing time <1m per paired reads.
+
+surviving paired reads: 
+ref VCA0107 Input Read Pairs: 2581550 Both Surviving: 2248355 (87.09%) Forward Only Surviving: 144415 (5.59%) Reverse Only Surviving: 61854 (2.40%) Dropped: 126926 (4.92%)
+ref VCA0747 Input Read Pairs: 2929340 Both Surviving: 2518201 (85.96%) Forward Only Surviving: 189556 (6.47%) Reverse Only Surviving: 73133 (2.50%) Dropped: 148450 (5.07%)
+
+# uncompress 
+# processing time < 5 sec
+
+for i in $(ls *Pair.fastq.gz); do echo $i ; gzip -d $i ;done
+#############################################################################################################
+
+4. Mapping
+
+##########################################
+	# NOVOALIGN
+##########################################
+
+# make index
+# wd in reference folder 
+# processing time < 3 sec
+
+/home/imateus/software/novocraft/novoindex  -s 1 -n All_chromosomes-Sa5Y-VCA0107-frt-kan-frt All_chromosomes-Sa5Y-VCA0107-frt-kan-frt.nix All_chromosomes-Sa5Y-VCA0107-frt-kan-frt.fasta 
+
+/home/imateus/software/novocraft/novoindex  -s 1 -n All_chromosomes-Sa5Y-VCA0747-frt-kan-frt All_chromosomes-Sa5Y-VCA0747-frt-kan-frt.nix All_chromosomes-Sa5Y-VCA0747-frt-kan-frt.fasta
+
+
+
+# mapping
+# wd in files folder
+# processing time in local < 30 min
+
+a=0;for i in $(ls *R1*Pair.fastq | sort -t'_' -k3); do a=$((a + 1)); b=$(echo $i | cut -d'.' -f1 | cut -d'_' -f5); c=$(ls *_R2*$b*.fastq); echo $i" "$c ; /home/imateus/software/novocraft/novoalign -d /home/imateus/Documents/V_cholerae/test1/ref_VCA0107/reference_template/*.nix -f $i $c -o SAM 2> 'stats'$i'VCA0107.txt' > $i'_VCA0107.sam'; done
+
+a=0;for i in $(ls *R1*Pair.fastq | sort -t'_' -k3); do a=$((a + 1)); b=$(echo $i | cut -d'.' -f1 | cut -d'_' -f5); c=$(ls *_R2*$b*.fastq); echo $i" "$c ; /home/imateus/software/novocraft/novoalign -d /home/imateus/Documents/V_cholerae/test1/ref_VCA0747/reference_template/*.nix -f $i $c -o SAM 2> 'stats'$i'VCA0747.txt' > $i'_VCA0747.sam'; done
+
+
+# 3 mismatches only
+a=0;for i in $(ls *R1*Pair.fastq | sort -t'_' -k3); do a=$((a + 1)); b=$(echo $i | cut -d'.' -f1 | cut -d'_' -f5); c=$(ls *_R2*$b*.fastq); echo $i" "$c ;
+/home/imateus/software/novocraft/novoalign -d /home/imateus/Documents/V_cholerae/test1/ref_VCA0107/reference_template/*.nix -f $i $c -t 90 -o SAM 2> 'stats'$i'VCA0107.txt' > $i'_VCA0107.sam'; done
+
+
+
+
+# SAM/BAM files treatment
+
+#Converting SAM directly to a sorted BAM file filtered by quality 30
+# processing time < 2 min
+
+for i in $(ls *.sam); do echo $i; /home/imateus/software/samtools-1.4/samtools view -bSq 30 $i | samtools sort -o $(echo $i | cut -d'.' -f1)_sorted.bam;done
+
+
+
+#bamaddrg (freebayes) pas installé. Rajoute dans sam, pour dire le nom de l’isolat. Il faut l’installer en local. Donc ramener le .bam 
+# to use in local
+# processing time < 3 min
+
+for i in $(ls *.bam); do echo $i; ~/software/bamaddrg/bamaddrg -b $i -r "gr."$(echo $i | cut -d"_" -f3) > $(echo $i | cut -d"." -f1)"RG.bam"; done
+
+
+
+
+#Creating a BAM index file
+# processing time < 1 min
+
+for i in $(ls *RG.bam); do echo $i; /home/imateus/software/samtools-1.4/samtools index $i $(echo $i | cut -d"." -f1)".bai" ; done
+
+
+
+
+
+
+#Coverage with bedtools
+# processing time < 1 min
+
+# to do plot and calculate gaps
+
+# only positions with at least one read all positions 
+for i in $(ls *RG.bam); do echo $i; /home/imateus/software/bedtools2/bin/bedtools genomecov -ibam $i -d -split > $(echo $i | cut -d'_' -f1)_detail.txt ; done
+
+
+# other options for calculating coverage in bedtools genomecov
+
+
+
+##########################################################3
+##########################################################
+### Sequential alignment
+
+# align on A1552
+ a=0;for i in $(ls *R1*Pair.fastq | sort -t'_' -k3); do a=$((a + 1)); b=$(echo $i | cut -d'.' -f1 | cut -d'_' -f5); c=$(ls *_R2*$b*.fastq); echo $i" "$c ;/home/imateus/software/novocraft/novoalign -d /home/imateus/Documents/V_cholerae/test1/ref_VCA0107/reference_template/A1552.nix -f $i $c -o SAM 2> 'stats'$i'VCA0107.txt' > $i'_VCA0107.sam'; done
+
+##### then the unmapped align to Sa5Y
+
+# convert sam to bam
+for i in $(ls *.sam); do echo $i; /home/imateus/software/samtools-1.4/samtools view -bSq 30 $i | samtools sort -o $(echo $i | cut -d'.' -f1)_sorted.bam;done
+
+
+# extract unmapped reads from bam file
+samtools view -u -f 12 -F 256 4703_S6_R1_Trimm_Pair_sorted.bam > 4703_unmapped.bam
+
+# transform unmapped bam to fastq
+bamToFastq -bam unmapped.bam -fq1 unmapped_reads1.fastq -fq2 unmapped_reads2.fastq
+/home/imateus/software/bedtools2/bin/bedtools bamToFastq -bam 4703_unmapped.bam -fq1 4703_unmapped_reads1.fastq -fq2 4703_unmapped_reads2.fastq
+
+# align unmapped reads to Sa5Y
+
+
+
+
+
+#############################################################################################################
+#############################################################################################################
+#############################################################################################################
+#############################################################################################################
+
+5. Mapping Quality comparison.
+# starting from filtered and trimmed fasq.
+
+############
+## Mapping
+############
+
+a=0;for i in $(ls *R1*Pair*.fastq | sort -t'_' -k3); do a=$((a + 1)); b=$(echo $i | cut -d'.' -f1 | cut -d'_' -f5); c=$(ls *_R2*$b*.fastq); echo $i" "$c ; /home/imateus/software/novocraft/novoalign -d /home/imateus/Documents/V_cholerae/test1/ref_VCA0107/reference_template/All_chromosomes-Sa5Y-VCA0107-frt-kan-frt.nix -f $i $c -o SAM 2> 'stats'$i'VCA0107.txt' > $i'_VCA0107.sam'; done
+
+############
+## SAM -> BAM mapping quality
+############
+
+# different mapping quality
+#
+for i in $(ls *.sam); do echo $i; /home/imateus/software/samtools-1.4/samtools view -bS $i | samtools sort -o $(echo $i | cut -d'.' -f1)_sorted.bam;done
+#Q10
+for i in $(ls *.sam); do echo $i; /home/imateus/software/samtools-1.4/samtools view -bSq 10 $i | samtools sort -o $(echo $i | cut -d'.' -f1)_sortedQ10.bam;done
+#Q20
+for i in $(ls *.sam); do echo $i; /home/imateus/software/samtools-1.4/samtools view -bSq 20 $i | samtools sort -o $(echo $i | cut -d'.' -f1)_sortedQ20.bam;done
+#Q30
+for i in $(ls *.sam); do echo $i; /home/imateus/software/samtools-1.4/samtools view -bSq 30 $i | samtools sort -o $(echo $i | cut -d'.' -f1)_sortedQ30.bam;done
+
+
+
+
+for i in $(ls *.bam); do echo $i; ~/software/bamaddrg/bamaddrg -b $i -r "gr."$(echo $i | cut -d"_" -f3) > $(echo $i | cut -d"." -f1)"RG.bam"; done
+
+for i in $(ls *RG.bam); do echo $i; /home/imateus/software/samtools-1.4/samtools index $i $(echo $i | cut -d"." -f1)".bai" ; done
+
+
+############
+## Coverage_calculation
+############
+for i in $(ls *RG.bam); do echo $i; /home/imateus/software/bedtools2/bin/bedtools genomecov -ibam $i -d -split > $(echo $i | cut -d'_' -f1,6)_detail.txt ; done
+
+
+#############################################3
+#---------------->  No differences between mapping quality 0,10,20,30. with reads already filtered by quality. 
+
+## -----> Redo but with reads not filtered by quality. 
+
+
+# working in base directory  /home/imateus/Documents/V_cholerae/test1/ref_VCA0107/T0*
+
+
+a=0;for i in $(ls *_R1_[0-9]*.fastq.gz | sort -t'_' -k3); do a=$((a + 1)); b=$(echo $i | cut -d'.' -f1 | cut -d'_' -f5); c=$(ls *_R2*$b*.fastq.gz); echo $i" "$c ;  java -jar /home/imateus/software/Trimmomatic-0.36/trimmomatic-0.36.jar PE -phred33 $i $c $(echo $i | cut -d'_' -f1,2,3)_Trimm_PairQ1.fastq.gz $(echo $i | cut -d'_' -f1,2,3)_Trimm_UnpairQ1.fastq.gz $(echo $c | cut -d'_' -f1,2,3)_Trimm_PairQ1.fastq.gz $(echo $c | cut -d'_' -f1,2,3)_Trimm_UnpairQ1.fastq.gz LEADING:3 TRAILING:3 SLIDINGWINDOW:4:1 MINLEN:50;  done
+Input Read Pairs: 2581550 Both Surviving: 2548305 (98.71%) Forward Only Surviving: 935 (0.04%) Reverse Only Surviving: 520 (0.02%) Dropped: 31790 (1.23%)
+TrimmomaticPE: Completed successfully
+
+
+
+a=0;for i in $(ls *_R1_[0-9]*.fastq.gz | sort -t'_' -k3); do a=$((a + 1)); b=$(echo $i | cut -d'.' -f1 | cut -d'_' -f5); c=$(ls *_R2*$b*.fastq.gz); echo $i" "$c ;  java -jar /home/imateus/software/Trimmomatic-0.36/trimmomatic-0.36.jar PE -phred33 $i $c $(echo $i | cut -d'_' -f1,2,3)_Trimm_PairQ10.fastq.gz $(echo $i | cut -d'_' -f1,2,3)_Trimm_UnpairQ10.fastq.gz $(echo $c | cut -d'_' -f1,2,3)_Trimm_PairQ10.fastq.gz $(echo $c | cut -d'_' -f1,2,3)_Trimm_UnpairQ10.fastq.gz LEADING:3 TRAILING:3 SLIDINGWINDOW:4:10 MINLEN:50;  done
+Input Read Pairs: 2581550 Both Surviving: 2548110 (98.70%) Forward Only Surviving: 1012 (0.04%) Reverse Only Surviving: 551 (0.02%) Dropped: 31877 (1.23%)
+TrimmomaticPE: Completed successfully
+
+
+a=0;for i in $(ls *_R1_[0-9]*.fastq.gz | sort -t'_' -k3); do a=$((a + 1)); b=$(echo $i | cut -d'.' -f1 | cut -d'_' -f5); c=$(ls *_R2*$b*.fastq.gz); echo $i" "$c ;  java -jar /home/imateus/software/Trimmomatic-0.36/trimmomatic-0.36.jar PE -phred33 $i $c $(echo $i | cut -d'_' -f1,2,3)_Trimm_PairQ20.fastq.gz $(echo $i | cut -d'_' -f1,2,3)_Trimm_UnpairQ20.fastq.gz $(echo $c | cut -d'_' -f1,2,3)_Trimm_PairQ20.fastq.gz $(echo $c | cut -d'_' -f1,2,3)_Trimm_UnpairQ20.fastq.gz LEADING:3 TRAILING:3 SLIDINGWINDOW:4:20 MINLEN:50;  done
+Input Read Pairs: 2581550 Both Surviving: 2248355 (87.09%) Forward Only Surviving: 144415 (5.59%) Reverse Only Surviving: 61854 (2.40%) Dropped: 126926 (4.92%)
+TrimmomaticPE: Completed successfully
+
+a=0;for i in $(ls *_R1_[0-9]*.fastq.gz | sort -t'_' -k3); do a=$((a + 1)); b=$(echo $i | cut -d'.' -f1 | cut -d'_' -f5); c=$(ls *_R2*$b*.fastq.gz); echo $i" "$c ;  java -jar /home/imateus/software/Trimmomatic-0.36/trimmomatic-0.36.jar PE -phred33 $i $c $(echo $i | cut -d'_' -f1,2,3)_Trimm_PairQ30.fastq.gz $(echo $i | cut -d'_' -f1,2,3)_Trimm_UnpairQ30.fastq.gz $(echo $c | cut -d'_' -f1,2,3)_Trimm_PairQ30.fastq.gz $(echo $c | cut -d'_' -f1,2,3)_Trimm_UnpairQ30.fastq.gz LEADING:3 TRAILING:3 SLIDINGWINDOW:4:30 MINLEN:50;  done
+Input Read Pairs: 2581550 Both Surviving: 1307760 (50.66%) Forward Only Surviving: 289250 (11.20%) Reverse Only Surviving: 259885 (10.07%) Dropped: 724655 (28.07%)
+TrimmomaticPE: Completed successfully
+
+
+
+# leading base quality 3
+# trailing base quality 3
+# phred quality of sequence, by sliding window of 4 bases and minimum phred score of 20
+# minimum length 50$
+# processing time <1m per paired reads.
+
+
+
+
+for i in $(ls *Pair*.fastq.gz); do echo $i ; gzip -d $i ;done
+
+#############################################3
+#---------------->  No differences between read quality 0,10,20,30. slighty higher for read quality 30. but feweer reads < 30 %
+
+## -----> CONCLUSION, GAPS and islands more than 1kb not the result of read quality or mapping quality. 
+
+### -----> PERSPECTIVE, Influence of aligner on Gaps and islands higher than 1kb?
+
+### -----> Bowtie Result without filter is mapping everywhere. not a good comparison. 
+
+####------> Redo bowtie mapping to see if something wrong with bowtie2 withowt filter.
+
+
+
+#############################################3
+
+
+## -------------> Redo analysis with different templates. A1152, Sa5Y, N16961  evaluate gaps. 
+
+reference templates in 
+/home/imateus/Documents/Microsynth/References_single_strains
+
+#### make index
+
+/home/imateus/software/novocraft/novoindex  -s 1 -n N16961 N16961.nix N16961.fasta 
+
+########## mapping
+
+a=0;for i in $(ls *R1*Pair*.fastq | sort -t'_' -k3); do a=$((a + 1)); b=$(echo $i | cut -d'.' -f1 | cut -d'_' -f5); c=$(echo $i | sed 's/R1/R2/g'); echo $i" "$c ; /home/imateus/software/novocraft/novoalign -d *.nix -f $i $c -o SAM 2> 'stats'$i'VCA0107.txt' > $i'_VCA0107.sam'; done
+
+########## SAM-BAM Q30
+for i in $(ls *.sam); do echo $i; /home/imateus/software/samtools-1.4/samtools view -bSq 30 $i | samtools sort -o $(echo $i | cut -d'.' -f1)_sortedQ30.bam;done
+
+########## Add header bam
+for i in $(ls *.bam); do echo $i; ~/software/bamaddrg/bamaddrg -b $i -r "gr."$(echo $i | cut -d"_" -f3) > $(echo $i | cut -d"." -f1)"RG.bam"; done
+
+########## make index
+for i in $(ls *RG.bam); do echo $i; /home/imateus/software/samtools-1.4/samtools index $i $(echo $i | cut -d"." -f1)".bai" ; done
+
+########## Coverage_calculation
+for i in $(ls *RG.bam); do echo $i; /home/imateus/software/bedtools2/bin/bedtools genomecov -ibam $i -d -split > $(echo $i | cut -d'_' -f1,6)_detail.txt ; done
+
+
+
+#############################################################################################################
+#############################################################################################################
+#############################################################################################################
+#############################################################################################################
+
+
+
+##########################################
+	# BOWTIE2 
+##########################################
+
+
+for i in $(ls *.bam); do echo $i; /home/imateus/software/bedtools2/bin/bedtools genomecov -ibam $i -d -split > $(echo $i | cut -d'_' -f1,6)_detail.txt ; done
+
+#1. create index of reference
+
+/home/imateus/software/bowtie2-2.3.2/bowtie2-build /home/imateus/Documents/V_cholerae/test1/ref_VCA0107/reference_template/All_chromosomes-Sa5Y-VCA0107-frt-kan-frt.fasta All_chromosomes-Sa5Y-VCA0107-frt-kan-frt_db
+
+#2 allign
+a=0;for i in $(ls *R1*Pair*.fastq | sort -t'_' -k3); do a=$((a + 1)); b=$(echo $i | cut -d'.' -f1 | cut -d'_' -f5); c=$(ls *_R2*$b*.fastq); echo $i" "$c ; /home/imateus/software/bowtie2-2.3.2/bowtie2 -x /home/imateus/Documents/V_cholerae/test1/ref_VCA0107/reference_template/All_chromosomes-Sa5Y-VCA0107-frt-kan-frt_db  -1 $i -2 $c -S $i'_VCA0107.sam' --no-unal ;done
+
+/home/imateus/software/bowtie2-2.3.2/bowtie2 -x /home/imateus/Documents/V_cholerae/test1/ref_VCA0107/reference_template/All_chromosomes-Sa5Y-VCA0107-frt-kan-frt_db -1 4703_S6_R1_Trimm_PairQ1.fastq -2 4703_S6_R2_Trimm_PairQ1.fastq -S 4703_S6_R1_Trimm_PairQ1.fastq_VCA0107.sam --no-unal
+
+
+#3 SAM -> BAM mapping quality
+# different mapping quality
+
+for i in $(ls *.sam); do echo $i; /home/imateus/software/samtools-1.4/samtools view -bS $i | samtools sort -o $(echo $i | cut -d'.' -f1)_sorted.bam;done
+#Q10
+for i in $(ls *.sam); do echo $i; /home/imateus/software/samtools-1.4/samtools view -bSq 10 $i | samtools sort -o $(echo $i | cut -d'.' -f1)_sortedQ10.bam;done
+#Q20
+for i in $(ls *.sam); do echo $i; /home/imateus/software/samtools-1.4/samtools view -bSq 20 $i | samtools sort -o $(echo $i | cut -d'.' -f1)_sortedQ20.bam;done
+#Q30
+for i in $(ls *.sam); do echo $i; /home/imateus/software/samtools-1.4/samtools view -bSq 30 $i | samtools sort -o $(echo $i | cut -d'.' -f1)_sortedQ30.bam;done
+
+#index bam
+for i in $(ls *.bam); do echo $i; /home/imateus/software/samtools-1.4/samtools index $i $(echo $i | cut -d"." -f1)".bai" ; done
+
+
+
+## Coverage_calculation
+
+for i in $(ls *.bam); do echo $i; /home/imateus/software/bedtools2/bin/bedtools genomecov -ibam $i -d -split > $(echo $i | cut -d'_' -f1,6)_detail.txt ; done
+
+
+
+
+#############################################################################################################
+#############################################################################################################
+#############################################################################################################
+#############################################################################################################
+
+
+########
+
+##################################
+	# Final GAP & islands estimation all files
+	# v1, 29.mai.2017
+##########################################
+
+
+########## TRIMMING qual20
+a=0;for i in $(ls *_R1_[0-9]*.fastq.gz | sort -t'_' -k3); do a=$((a + 1)); b=$(echo $i | cut -d'.' -f1 | cut -d'_' -f5); c=$(echo $i | sed 's/R1/R2/g');echo $i" "$c ;  java -jar /home/imateus/software/Trimmomatic-0.36/trimmomatic-0.36.jar PE -phred33 $i $c $(echo $i | cut -d'_' -f1,2,3)_Trimm_Pair.fastq.gz $(echo $i | cut -d'_' -f1,2,3)_Trimm_Unpair.fastq.gz $(echo $c | cut -d'_' -f1,2,3)_Trimm_Pair.fastq.gz $(echo $c | cut -d'_' -f1,2,3)_Trimm_Unpair.fastq.gz LEADING:3 TRAILING:3 SLIDINGWINDOW:4:20 MINLEN:50;  done
+
+copy paste output for summary table.
+
+# NOw work on cluster 
+scp *_Trimm_Unpair.fastq.gz imateus2@frt.el.vital-it.ch:/scratch/cluster/monthly/imateus2/Exp1
+
+########## unzip
+for i in $(ls *Pair.fastq.gz); do echo $i ; gzip -d $i ;done
+
+########## mapping
+a=0;for i in $(ls *R1*Pair*.fastq | sort -t'_' -k3); do a=$((a + 1)); b=$(echo $i | cut -d'.' -f1 | cut -d'_' -f5); c=$(echo $i | sed 's/R1/R2/g'); echo $i" "$c ; /home/imateus/software/novocraft/novoalign -d /home/imateus/Documents/V_cholerae/test1/ref_VCA0107/reference_template/All_chromosomes-Sa5Y-VCA0107-frt-kan-frt.nix -f $i $c -o SAM 2> 'stats'$i'VCA0107.txt' > $i'_VCA0107.sam'; done
+
+########## SAM-BAM Q30
+for i in $(ls *.sam); do echo $i; /home/imateus/software/samtools-1.4/samtools view -bSq 30 $i | samtools sort -o $(echo $i | cut -d'.' -f1)_sortedQ30.bam;done
+rm *.sam
+
+########## Add header bam
+for i in $(ls *.bam); do echo $i; ~/software/bamaddrg/bamaddrg -b $i -r "gr."$(echo $i | cut -d"_" -f3) > $(echo $i | cut -d"." -f1)"RG.bam"; done
+
+########## make index
+for i in $(ls *RG.bam); do echo $i; /home/imateus/software/samtools-1.4/samtools index $i $(echo $i | cut -d"." -f1)".bai" ; done
+
+########## Coverage_calculation
+
+for i in $(ls *RG.bam); do echo $i; /home/imateus/software/bedtools2/bin/bedtools genomecov -ibam $i -d -split > $(echo $i | cut -d'_' -f1,6)_detail.txt ; done
+
+for i in $(ls *detail.txt); do echo $i ; gzip $i ;done
+
+
+########## SNP calling 
+a=0; for i in $(ls *_Trimm_Pair_sortedQ30RG.bam); do echo $i;a=$((a + 1)); freebayes -f /home/imateus/Documents/V_cholerae/test1/ref_VCA0107/reference_template/All_chromosomes-Sa5Y-VCA0107-frt-kan-frt.fasta --min-coverage 10 -F 0.3 -p 1 -K -u -v $(echo $i | cut -d'.' -f1)'.vcf' -b $i ; done
+
+#########################################################################################################################################################
+
+SUMMARY STATISTICS
+#########################
+
+########1 obtain info about read trimming.
+
+in sublime.
+
+^Trimmo.*$
+
+^Multiple.*$
+
+^ -phred.*$
+
+^(\w+)_(\w+)_(\w+)_(\w+).fastq.gz (\w+)_(\w+).fastq.gzip   \1
+
+^\n 
+
+\nInput \tInput
+
+read Pairs: 
+
+
+#######2 obtain info about mapped reads, unmapped, single, multiplecopy
+
+# mapped reads
+ for i in $(ls *RG.bam); do echo $i; samtools view -c -F 4 $i ;done
+
+
+
+# Unmapped reads only
+
+for i in $(ls *RG.bam); do echo $i; samtools view -c -f 4  $i ;done
+
+
+
+#########################################################################################################################################################
+#########################################################################################################################################################
+#########################################################################################################################################################
+
+
+##################################
+	# Final GAP & islands estimation all files
+####################################################################### CLUSTER VERSION ##############################################################################################
+####################################################################### NOEMIE EXP. 2  ##############################################################################################
+
+	# EXPERIMENT 2 NOEMIE
+	# CLUSTER VERSION
+	# v1, 4 JULY 2017
+##########################################
+
+########## zip
+
+a=0;for folder in $(ls -d */); do cd $folder; for i in $(ls *.fastq); do echo $i;a=$((a + 1));bsub -q normal -L /bin/bash -J zip$a -u ivan.mateusgonzalez@epfl.ch  -N  "gzip $i ";done; cd ..; done
+
+########## TRIMMING qual20
+
+a=0;for folder in $(ls -d */); do cd $folder;a=0;for i in $(ls *_R1.fastq.gz | sort -t'_' -k2); do a=$((a + 1)); b=$(echo $i | cut -d'.' -f1 | cut -d'_' -f1); c=$(echo $i | sed 's/R1/R2/g');echo $i" "$c ; bsub -q normal -L /bin/bash -J TRIMMO$a -u ivan.mateusgonzalez@epfl.ch  -N  "  java -jar /home/imateus2/software/Trimmomatic-0.36/trimmomatic-0.36.jar PE -phred33 $i $c $(echo $i | cut -d'_' -f1,2)_Trimm_Pair.fastq $(echo $i | cut -d'_' -f1,2)_Trimm_Unpair.fastq $(echo $c | cut -d'_' -f1,2)_Trimm_Pair.fastq $(echo $c | cut -d'_' -f1,2)_Trimm_Unpair.fastq LEADING:3 TRAILING:3 SLIDINGWINDOW:4:20 MINLEN:50";  done ; cd ..; done
+
+
+########## mapping
+/home/imateus2/software/novocraft/novoindex -s 1 -n template_A template_*.nix template_*.fasta  # change A. B. C.
+
+
+a=0;for folder in $(ls -d */); do cd $folder; a=0;for i in $(ls *R1*Pair*.fastq | sort -t'_' -k2); do a=$((a + 1)); b=$(echo $i | cut -d'.' -f1 | cut -d'_' -f1); c=$(echo $i | sed 's/R1/R2/g'); echo $i" "$c ;bsub -q normal -L /bin/bash -J novo$a -u ivan.mateusgonzalez@epfl.ch  -N  " 
+/home/imateus2/software/novocraft/novoalign -d/scratch/cluster/monthly/imateus2/V_cholera_noem/EXP2/References/template_C/template_C.nix -f $i $c -o SAM 2> 'stats'$i'.txt' > $i'.sam' ";  done ; cd ..; done
+
+########## SAM-BAM Q30
+
+a=0;for folder in $(ls -d */); do cd $folder; a=0; for i in $(ls *.sam); do echo $i;bsub -q normal -L /bin/bash -J sam$i -u ivan.mateusgonzalez@epfl.ch  -N  " module add UHTS/Analysis/samtools/1.3; samtools view -bSq 30 $i | samtools sort -o $(echo $i | cut -d'.' -f1| cut -d'_' -f1)_sortedQ30.bam ";  done ; cd ..; done
+
+########## RETURN TO LOCAL
+
+scp imateus2@frt.el.vital-it.ch:/scratch/cluster/monthly/imateus2/V_cholera_noem/EXP2/template_A/*/*_sortedQ30.bam .
+
+########## Add header bam
+for i in $(ls *.bam); do echo $i; ~/software/bamaddrg/bamaddrg -b $i -r "gr."$(echo $i | cut -d"_" -f3) > $(echo $i | cut -d"." -f1)"RG.bam"; done
+
+########## make index
+for i in $(ls *RG.bam); do echo $i; /home/imateus/software/samtools-1.4/samtools index $i $(echo $i | cut -d"." -f1)".bai" ; done
+
+########## Coverage_calculation
+
+for i in $(ls *RG.bam); do echo $i; /home/imateus/software/bedtools2/bin/bedtools genomecov -ibam $i -d -split > $(echo $i | cut -d'_' -f1,6)_detail.txt ; done
+
+for i in $(ls *detail.txt); do echo $i ; gzip $i ;done
+
+
+########## SNP calling 
+a=0; for i in $(ls *_Trimm_Pair_sortedQ30RG.bam); do echo $i;a=$((a + 1)); freebayes -f /home/imateus/Documents/V_cholerae/test1/ref_VCA0107/reference_template/All_chromosomes-Sa5Y-VCA0107-frt-kan-frt.fasta --min-coverage 10 -F 0.3 -p 1 -K -u -v $(echo $i | cut -d'.' -f1)'.vcf' -b $i ; done
+
+#########################################################################################################################################################
+hH5M0Xnjj_vv
+
+
+	# Final GAP & islands estimation all files
+#######################################################################  Whole genome comparison  ##############################################################################################
+####################################################################### N16961 A1552 Sa5Y   ##############################################################################################
+
+	# EXPERIMENT 2 NOEMIE
+	# v1, 7 JULY 2017
+##########################################
+
+# make reference 
+
+# align template to reference
+
+# convert to bam
+
+# make database on Isolate to confirm
+lastdb -uNEAR -R01 N16961_db ../ref1_N16961_ASM674v1_Complete.fna
+lastdb -uNEAR -R01 A1552_db ../ref2_A1552.fasta
+
+# make alignement of sample to Isolate in db
+lastal N16961_db ../ref2_A1552.fasta | maf-convert sam > A1552_in_N16961.sam
+lastal N16961_db ../ref3_Sa5Y.fasta | maf-convert sam > Sa5Y_in_N16961.sam
+lastal A1552_db ../ref3_Sa5Y.fasta | maf-convert sam > Sa5Y_in_A1552.sam
+
+
+# mapping
+/home/imateus/software/samtools-1.4/samtools view -S -T ../ref1_N16961_ASM674v1_Complete.fna -b A1552_in_N16961.sam | samtools sort -o A1552_in_N16961.bam
+/home/imateus/software/samtools-1.4/samtools view -S -T ../ref1_N16961_ASM674v1_Complete.fna -b Sa5Y_in_N16961.sam | samtools sort -o Sa5Y_in_N16961.bam
+/home/imateus/software/samtools-1.4/samtools view -S -T ../ref2_A1552.fasta -b Sa5Y_in_A1552.sam | samtools sort -o Sa5Y_in_A1552.bam
+
+########## SNP calling 
+freebayes -f ../ref1_N16961_ASM674v1_Complete.fna -F 0.3 -p 1 -K -u -v A1552_in_N16961.vcf -b A1552_in_N16961.bam 
+freebayes -f ../ref1_N16961_ASM674v1_Complete.fna -F 0.3 -p 1 -K -u -v Sa5Y_in_N16961.vcf -b Sa5Y_in_N16961.bam
+freebayes -f ../ref2_A1552.fasta -F 0.3 -p 1 -K -u -v Sa5Y_in_A1552.vcf -b Sa5Y_in_A1552.bam
+
+
+cat A1552_in_N16961.vcf | grep "ins" | wc -l
+cat A1552_in_N16961.vcf | grep "snp" | wc -l
+
+A1552 in N16961  13819 SNP 267 ins 257 del  total 4084064  3.38 SNP/kb
+Sa5Y in N16961  18476 SNP 311 ins 434 del  total 4084064  4.5 SNP/kb
+Sa5Y in A1552  14905 SNP 218 ins 328 del  total 4086368   3.6 SNP/kb
