@@ -1,0 +1,15 @@
+# Identification of Prophages on genomes by using Phaster API
+
+# For a single file
+1. Send data
+wget --header="Content-type: multipart/form-data boundary=FILEUPLOAD" --post-file Vibrio_cholerae_372_ALLK49_Contigs.fna http://phaster.ca/phaster_api?contigs=1 -O 372
+
+2. Get job id
+cat 372
+
+
+3. get results
+
+wget "http://phaster.ca/phaster_api?acc=ZZ_646558b222" -O Phaster_372.txt
+
+
