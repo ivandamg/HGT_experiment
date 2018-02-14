@@ -12,4 +12,12 @@ cat 372
 
 wget "http://phaster.ca/phaster_api?acc=ZZ_646558b222" -O Phaster_372.txt
 
+# For multiple files
+1. Upload genomes
+mkdir Prophages
+for i in $(ls Vibrio_cholerae_*.fna); do echo $i ; wget --header="Content-type: multipart/form-data boundary=FILEUPLOAD" --post-file $i http://phaster.ca/phaster_api?contigs=1 -O Prophages/$(echo $i | cut -d'_' -f3).Job ;done
 
+2. Extract info about job ID
+for i in $(ls [0-9]*.Job); do cat $i| cut -d',' -f1 |cut -d':' -f2 | sed 's/\"//' | sed 's/^/wget \"htp:\/\/phaster.ca\/phaster_api?acc=/';  echo $i ; done | tr '\n' ' '  | sed 's/.Job/.txt\n/g' | sed 's/\" /\" -O Phaster_/' | sed 's/^ //'
+
+3. copy paster to get data
