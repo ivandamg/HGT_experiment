@@ -18,6 +18,11 @@ mkdir Prophages
 for i in $(ls Vibrio_cholerae_*.fna); do echo $i ; wget --header="Content-type: multipart/form-data boundary=FILEUPLOAD" --post-file $i http://phaster.ca/phaster_api?contigs=1 -O Prophages/$(echo $i | cut -d'_' -f3).Job ;done
 
 2. Extract info about job ID
-for i in $(ls [0-9]*.Job); do cat $i| cut -d',' -f1 |cut -d':' -f2 | sed 's/\"//' | sed 's/^/wget \"htp:\/\/phaster.ca\/phaster_api?acc=/';  echo $i ; done | tr '\n' ' '  | sed 's/.Job/.txt\n/g' | sed 's/\" /\" -O Phaster_/' | sed 's/^ //'
-
+for i in $(ls *.Job); do cat $i| cut -d',' -f1 |cut -d':' -f2 | sed 's/\"//' | sed 's/^/wget \"http:\/\/phaster.ca\/phaster_api?acc=/';  echo $i ; done | tr '\n' ' '  | sed 's/.Job/.txt\n/g' | sed 's/\" /\" -O Phaster_/' | sed 's/^ //'
 3. copy paster to get data
+
+4. modify results to import in R
+
+for i in $(ls Phaster_*.txt); do cat $i | sed 's/\\n/@/g' | tr '@' '\n' | grep -i -A 100 'gc%:' | grep -v 'gc%:' | grep -v '\-\-' | sed 's/  / /g' | sed 's/  / /g' | sed 's/  / /g' | grep -v '\"\}' > PhasterVF_$(echo $i | cut -d'_' -f2); done 
+
+5. import in R
