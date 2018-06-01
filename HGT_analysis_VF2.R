@@ -22,10 +22,10 @@ require(scales)
 
 
 
-# Template ref
+# Template ref LOAD FIRST
 ########################
-
 #####################CHANGE AT EACH TREATMENT
+
 template<-read.delim("/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/BamAddRG/Coverage_data/Templates_INFO/Template_C_vf.csv",h=F,sep="\t")
 
 Inserts<-template[grep('blokesch',template$V9),]
@@ -369,8 +369,19 @@ ALLconfirmedV2[[i]]<-final_Confirmed
 ########################################################################################################################################################################
 # Linear PLOT by treatment
 ########################################################################################################################################################################
+# 1 do first template begiingin script only
 
- setwd("/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/BamAddRG/Coverage_data/TemplateE/")
+# ATTENTION: Issue with delimitation of Chr2 and A1552 Sa5Y. Some big framents acquired by HGT make that the total chr size became bigger. 
+# these could be discarded at separating the data on A1552, Sa5y, Chr1 Chr2 first  step..
+# ONLY figure that do not have this issue is when plotting everything together.
+# Not allways accurate, Cassette vertical line, division of chromosomes and strains
+# Issues with next to end template of chr2 Sa5Y
+# Issues with next to start template chr1 Sa5y
+# manually curated figures Sa5y chrI and Sa5Y chr2
+
+wd<-"/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/BamAddRG/Coverage_data/TemplateC1/"
+setwd(wd)
+cassette<-unlist(strsplit(wd,split="/"))[grep("Template",unlist(strsplit(wd,split="/")) )]
 
 # import files
 filesToProcess <- dir(pattern = "*\\_VF.txt$")  #files to pro# if event 3 merged
@@ -404,23 +415,18 @@ HGT_vf<-rbind.data.frame(HGT_vf,HGT[[i]])}
 #
 
 # PLOT ALL CHIMERA
-pdf("/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/Figures_VF2/Results_TemplateC1.pdf", height = 2.8346, width=4.17323)
 plotlines<-  ggplot(aes(xmin=rep(1,length(listOfFiles)), xmax=rep(Coor_Length_Chimera,length(listOfFiles)), ymin=1:length(listOfFiles)-0.05, ymax= 1:length(listOfFiles)+0.05),data=NULL)+ geom_rect() + 
-  annotate("text", x = -100000, y = (1:length(names(listOfFiles))), label = names(listOfFiles))+ scale_y_reverse()+ theme_set(theme_gray(base_size = 1))
+  annotate("text", x = -100000, y = (1:length(names(listOfFiles))), label = names(listOfFiles),size =2)+ scale_y_reverse()
 
 plotlines + geom_rect(aes(xmin=HGT_vf$start, xmax=HGT_vf$end, ymin=HGT_vf$ymin, ymax=HGT_vf$ymax),data=NULL,
-                      fill=HGT_vf$Colorito, alpha=2/4)  + geom_vline(xintercept=Coor_LengthA1552) +
-  annotate("text", x = 400000, y = 1-  2, label = "A1552 template")   +
-  annotate("text", x = 5000000, y = 1 - 2, label = "Sa5Y template")   +
-  annotate("text", x = Inserts$V4[1], y = length(names(listOfFiles)) +1, label = "Insert") +
-  ggtitle("HGT treatment C1")  + 
+                      fill=HGT_vf$Colorito, alpha=2/4)  + geom_vline(xintercept=Coor_LengthA1552)  +
+  annotate("text", x = 400000, y = 1-  2, label = "A1552 template",size=2)   +
+  annotate("text", x = 5000000, y = 1 - 2, label = "Sa5Y template",size=2)   +
+  annotate("text", x = Inserts$V4[1], y = length(names(listOfFiles)) +1, label = "Insert", size =2) +
   theme(axis.line=element_blank(),axis.text.y=element_blank(), axis.ticks=element_blank(),axis.title.x=element_blank(),
          axis.title.y=element_blank(),legend.position="none",  panel.border=element_blank() ) + scale_x_continuous(labels = comma) 
 
-
-
-
-ggsave("Results_TemplateC1.pdf", plot = last_plot(), path = "/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/Figures_VF2/",
+ggsave(paste("Results",cassette,"VF2.pdf",sep = "_"), plot = last_plot(), path = "/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/Figures_VF2/",
        width = 106, height = 72.5, units = c("mm"),
        dpi = 300, limitsize = TRUE) + theme_set(theme_gray(base_size = 6))
 
@@ -428,78 +434,166 @@ ggsave("Results_TemplateC1.pdf", plot = last_plot(), path = "/media/imateus/Ivan
 
 
 # PLOT A1552 template
-HGT_vf_A1552<-HGT_vf[HGT_vf$end<Coor_LengthA1552,]
-pdf("/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/Results_TemplateC1_A1552.pdf", height = 10,width=14)
+HGT_vf_A1552<-HGT_vf[HGT_vf$end<(Coor_LengthA1552),]
+HGT_vf_A1552$Colorito<-as.character(HGT_vf_A1552$Colorito)
+HGT_vf_A1552$Colorito<-"black"
+
 plotlines<-  ggplot(aes(xmin=rep(1,length(listOfFiles)), xmax=rep(Coor_LengthA1552,length(listOfFiles)), ymin=1:length(listOfFiles)-0.05, ymax= 1:length(listOfFiles)+0.05),data=NULL)+ geom_rect() + 
-  annotate("text", x = -100000, y = (1:length(names(listOfFiles))), label = names(listOfFiles))
+  annotate("text", x = -100000, y = (1:length(names(listOfFiles))), label = names(listOfFiles),size =2)+ scale_y_reverse() 
 
 plotlines + geom_rect(aes(xmin=HGT_vf_A1552$start, xmax=HGT_vf_A1552$end, ymin=HGT_vf_A1552$ymin, ymax=HGT_vf_A1552$ymax),data=NULL,
                       fill=HGT_vf_A1552$Colorito, alpha=2/4)  + geom_vline(xintercept=Coor_LengthA1552_CHR1) +
-  annotate("text", x = 400000, y = length(names(listOfFiles)) + 2, label = "Chromosome I", fontface=2)   +
-  annotate("text", x = 3300000, y = length(names(listOfFiles)) + 2, label = "Chromosome II", fontface=2)   +
-  annotate("text", x = Inserts$V4[1]-Coor_LengthA1552, y = 0, label = "Insert", fontface=2) +
-  ggtitle("HGT treatment C1 A1552") + theme(plot.title = element_text(size = 20, face = "bold" )) + 
-  theme(axis.line=element_blank(), axis.text.y=element_blank(),      axis.ticks=element_blank(),axis.title.x=element_blank(),
+  annotate("text", x = 400000, y = 1 - 2, label = "Chromosome I", size=2)   +
+  annotate("text", x = 3300000, y = 1 - 2, label = "Chromosome II", size=2)   +
+  annotate("text", x = Inserts$V4[1]-Coor_LengthA1552, y = length(names(listOfFiles))+1, label = "Insert", size=2) +
+    theme(axis.line=element_blank(), axis.text.y=element_blank(),      axis.ticks=element_blank(),axis.title.x=element_blank(),
         axis.title.y=element_blank(),legend.position="none",  panel.border=element_blank() ) + scale_x_continuous(labels = comma)
-dev.off()
+
+ggsave(paste("Results",cassette,"A1552","VF2.pdf",sep = "_"), plot = last_plot(), path = "/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/Figures_VF2/",
+       width = 106, height = 72.5, units = c("mm"),
+       dpi = 300, limitsize = TRUE) + theme_set(theme_gray(base_size = 6))
 
 # PLOT Sa5Y template
 HGT_vf_Sa5Y<-HGT_vf[HGT_vf$start>Coor_LengthA1552,]
-pdf("/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/Results_TemplateC1_Sa5Y.pdf", height = 10,width=14)
+HGT_vf_Sa5Y$Colorito<-as.character(HGT_vf_Sa5Y$Colorito)
+HGT_vf_Sa5Y$Colorito<-"black"
 plotlines<-  ggplot(aes(xmin=rep(Coor_LengthA1552,length(listOfFiles)), xmax=rep(Coor_Length_Chimera,length(listOfFiles)), ymin=1:length(listOfFiles)-0.05, ymax= 1:length(listOfFiles)+0.05),data=NULL)+ geom_rect() + 
-  annotate("text", x = 3850000, y = (1:length(names(listOfFiles))), label = names(listOfFiles))
+  annotate("text", x = 3850000, y = (1:length(names(listOfFiles))), label = names(listOfFiles),size =2)+ scale_y_reverse()
 
 plotlines + geom_rect(aes(xmin=HGT_vf_Sa5Y$start, xmax=HGT_vf_Sa5Y$end, ymin=HGT_vf_Sa5Y$ymin, ymax=HGT_vf_Sa5Y$ymax),data=NULL,
                       fill=HGT_vf_Sa5Y$Colorito, alpha=2/4)  + geom_vline(xintercept=Coor_LengthA1552_Sa5Y_CHR1) +
-  annotate("text", x = 4400000, y = length(names(listOfFiles)) + 2, label = "Chromosome I", fontface=2)   +
-  annotate("text", x = 7300000, y = length(names(listOfFiles)) + 2, label = "Chromosome II", fontface=2)   +
-  annotate("text", x = Inserts$V4[1], y = 0, label = "Insert", fontface=2) +
-  ggtitle("HGT treatment C1 Sa5Y") + theme(plot.title = element_text(size = 20, face = "bold" )) + 
+  annotate("text", x = 4400000, y = 1 - 2, label = "Chromosome I", size=2)   +
+  annotate("text", x = 7300000, y = 1 - 2, label = "Chromosome II", size=2)   +
+  annotate("text", x = Inserts$V4[1], y = length(names(listOfFiles)) +1, label = "Insert", size=2) +
   theme(axis.line=element_blank(), axis.text.y=element_blank(),      axis.ticks=element_blank(),axis.title.x=element_blank(),
         axis.title.y=element_blank(),legend.position="none",  panel.border=element_blank() ) + scale_x_continuous(labels = comma)
-dev.off()
+
+ggsave(paste("Results",cassette,"SA5Y","VF2.pdf",sep = "_"), plot = last_plot(), path = "/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/Figures_VF2/",
+       width = 106, height = 72.5, units = c("mm"),
+       dpi = 300, limitsize = TRUE) + theme_set(theme_gray(base_size = 6))
 
 ###
+#Coordinates selection antibio_A1552
+VCA0747_A1552<-691610
+VC2338_A1552 <-2263614
+VCA0107_A1552<-117330
 
+cassette2<-c(VCA0107_A1552,VCA0747_A1552,VCA0747_A1552,VCA0747_A1552,VC2338_A1552,VC2338_A1552,VC2338_A1552,VCA0107_A1552)
+names(cassette2)<- c("Template1","Template2","TemplateA","TemplateB","TemplateC1","TemplateC2","TemplateD","TemplateE")
+
+###
 # Ploting separately CHR1 CHR2 for A1552
-sizeChr1_A1552<- 3015094
+sizeChr1_A1552 <- 3015094
 sizeChr2_A1552 <- 1070374
 
 HGT_vf_A1552<-HGT_vf[HGT_vf$end<Coor_LengthA1552,]
+HGT_vf_A1552$Colorito<-as.character(HGT_vf_A1552$Colorito)
+HGT_vf_A1552$Colorito<-"black"
 HGT_vf_A1552_LargeChr<-HGT_vf_A1552[HGT_vf_A1552$start< ( sizeChr1_A1552 + 1),]
 HGT_vf_A1552_SmallChr<-HGT_vf_A1552[HGT_vf_A1552$start> ( sizeChr1_A1552 ),]
 HGT_vf_A1552_SmallChr$start<-HGT_vf_A1552_SmallChr$start-sizeChr1_A1552
 HGT_vf_A1552_SmallChr$end<-HGT_vf_A1552_SmallChr$end-sizeChr1_A1552
 
 #large chromosome
-pdf("/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/FIGURES_VF/Results_TemplateE_A1552_LargeChromosome.pdf", height = 10,width=14)
 plotlines<-  ggplot(aes(xmin=rep(1,length(listOfFiles)), xmax=rep(sizeChr1_A1552,length(listOfFiles)), ymin=1:length(listOfFiles)-0.05, ymax= 1:length(listOfFiles)+0.05),data=NULL)+ geom_rect() + 
-  annotate("text", x = -100000, y = (1:length(names(listOfFiles))), label = names(listOfFiles))
+  annotate("text", x = -100000, y = (1:length(names(listOfFiles))), label = names(listOfFiles),size =2)+ scale_y_reverse()
 
 plotlines + geom_rect(aes(xmin=HGT_vf_A1552_LargeChr$start, xmax=HGT_vf_A1552_LargeChr$end, ymin=HGT_vf_A1552_LargeChr$ymin, ymax=HGT_vf_A1552_LargeChr$ymax),data=NULL,
                       fill=HGT_vf_A1552_LargeChr$Colorito, alpha=2/4) +
-  annotate("text", x = 400000, y = length(names(listOfFiles)) + 2, label = "Large chromosome", fontface=2)   +
-  ggtitle("Treatment E A1552") + theme(plot.title = element_text(size = 20, face = "bold" )) + 
+  annotate("text", x = 400000, y = 1-2, label = "Large chromosome", size=2)   +
   theme(axis.line=element_blank(), axis.text.y=element_blank(),      axis.ticks=element_blank(),axis.title.x=element_blank(),
-        axis.title.y=element_blank(),legend.position="none",  panel.border=element_blank() ) + scale_x_continuous(labels = comma, limits =c(-100000,sizeChr1_A1552+20000))
-dev.off()
+        axis.title.y=element_blank(),legend.position="none",  panel.border=element_blank() ) + scale_x_continuous(labels = comma, limits =c(-100000,sizeChr1_A1552+20000))+ 
+  geom_vline(xintercept=cassette2[cassette[cassette %in% names(cassette2)]])
+ggsave(paste("Results",cassette,"A1552","LargeChromosome","VF2.pdf",sep = "_") , plot = last_plot(), path = "/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/Figures_VF2/",
+       width = 106, height = 72.5, units = c("mm"),
+       dpi = 300, limitsize = TRUE) + theme_set(theme_gray(base_size = 6))
+
+
 #Small chromosome
-pdf("/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/FIGURES_VF/Results_TemplateE_A1552_SmallChromosome.pdf", height = 10,width=14)
 plotlines<-  ggplot(aes(xmin=rep(1,length(listOfFiles)), xmax=rep(sizeChr2_A1552,length(listOfFiles)), ymin=1:length(listOfFiles)-0.05, ymax= 1:length(listOfFiles)+0.05),data=NULL)+ geom_rect() + 
-  annotate("text", x = -33000, y = (1:length(names(listOfFiles))), label = names(listOfFiles))
+  annotate("text", x = -33000, y = (1:length(names(listOfFiles))), label = names(listOfFiles),size =2)+ scale_y_reverse()
 
 plotlines + geom_rect(aes(xmin=HGT_vf_A1552_SmallChr$start, xmax=HGT_vf_A1552_SmallChr$end, ymin=HGT_vf_A1552_SmallChr$ymin, ymax=HGT_vf_A1552_SmallChr$ymax),data=NULL,
                       fill=HGT_vf_A1552_SmallChr$Colorito, alpha=2/4) +
-  annotate("text", x = 120000, y = length(names(listOfFiles)) + 2, label = "Small chromosome", fontface=2)   +
-  ggtitle("Treatment E A1552") + theme(plot.title = element_text(size = 20, face = "bold" )) + 
+  annotate("text", x = 120000, y = 1- 2, label = "Small chromosome", size=2)   +
   theme(axis.line=element_blank(), axis.text.y=element_blank(),      axis.ticks=element_blank(),axis.title.x=element_blank(),
-        axis.title.y=element_blank(),legend.position="none",  panel.border=element_blank() ) + scale_x_continuous(labels = comma, limits =c(-33000,sizeChr2_A1552))
-dev.off()
+        axis.title.y=element_blank(),legend.position="none",  panel.border=element_blank() ) + scale_x_continuous(labels = comma, limits =c(-33000,sizeChr2_A1552))+ 
+  geom_vline(xintercept=cassette2[cassette[cassette %in% names(cassette2)]])
+
+ggsave(paste("Results",cassette,"A1552","SmallChromosome","VF2.pdf",sep = "_"), plot = last_plot(), path = "/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/Figures_VF2/",
+       width = 106, height = 72.5, units = c("mm"),
+       dpi = 300, limitsize = TRUE) + theme_set(theme_gray(base_size = 6))
+
+###
+
+###
+#Coordinates selection antibio_Sa5Y
+VCA0747_Sa5Y<-721129
+VC2338_Sa5Y <-591308
+VCA0107_Sa5Y<-119142
+
+cassette2<-c(VCA0107_Sa5Y,VCA0747_Sa5Y,VCA0747_Sa5Y,VCA0747_Sa5Y,VC2338_Sa5Y,VC2338_Sa5Y,VC2338_Sa5Y,VCA0107_Sa5Y)
+names(cassette2)<- c("Template1","Template2","TemplateA","TemplateB","TemplateC1","TemplateC2","TemplateD","TemplateE")
+
+# Ploting separately CHR1 CHR2 for Sa5Y
+sizeChr1_A1552<- 3015094
+sizeChr2_A1552 <- 1070374
+sizeChr1_Sa5Y <- 2955400
+sizeChr2_Sa5Y <- 1095478
 
 
+HGT_vf_Sa5Y<-HGT_vf[HGT_vf$end>Coor_LengthA1552,]
+HGT_vf_Sa5Y$Colorito<-as.character(HGT_vf_Sa5Y$Colorito)
+HGT_vf_Sa5Y$Colorito<-"black"
 
+HGT_vf_Sa5Y_LargeChr<-HGT_vf_Sa5Y[HGT_vf_Sa5Y$start< (sizeChr1_A1552 +sizeChr2_A1552+sizeChr1_Sa5Y + 1),]
+HGT_vf_Sa5Y_LargeChr$start<-HGT_vf_Sa5Y_LargeChr$start- sizeChr1_A1552 - sizeChr2_A1552
+HGT_vf_Sa5Y_LargeChr$end<-HGT_vf_Sa5Y_LargeChr$end-sizeChr1_A1552 - sizeChr2_A1552 
+
+HGT_vf_Sa5Y_SmallChr<-HGT_vf_Sa5Y[HGT_vf_Sa5Y$start> ( sizeChr1_A1552 +sizeChr2_A1552+sizeChr1_Sa5Y ),]
+HGT_vf_Sa5Y_SmallChr$start<-HGT_vf_Sa5Y_SmallChr$start-sizeChr1_Sa5Y - sizeChr1_A1552 - sizeChr2_A1552
+HGT_vf_Sa5Y_SmallChr$end<-HGT_vf_Sa5Y_SmallChr$end-sizeChr1_Sa5Y -sizeChr1_A1552 - sizeChr2_A1552 
+
+#large chromosome
+plotlines<-  ggplot(aes(xmin=rep(1,length(listOfFiles)), xmax=rep(sizeChr1_Sa5Y,length(listOfFiles)), ymin=1:length(listOfFiles)-0.05, ymax= 1:length(listOfFiles)+0.05),data=NULL)+ geom_rect() + 
+  annotate("text", x = -100000, y = (1:length(names(listOfFiles))), label = names(listOfFiles),size =2)+ scale_y_reverse()
+
+plotlines + geom_rect(aes(xmin=HGT_vf_Sa5Y_LargeChr$start, xmax=HGT_vf_Sa5Y_LargeChr$end, ymin=HGT_vf_Sa5Y_LargeChr$ymin, ymax=HGT_vf_Sa5Y_LargeChr$ymax),data=NULL,
+                      fill=HGT_vf_Sa5Y_LargeChr$Colorito, alpha=2/4) +
+  annotate("text", x = 400000, y = 1-2, label = "Large chromosome", size=2)   +
+  theme(axis.line=element_blank(), axis.text.y=element_blank(),      axis.ticks=element_blank(),axis.title.x=element_blank(),
+        axis.title.y=element_blank(),legend.position="none",  panel.border=element_blank() ) + scale_x_continuous(labels = comma, limits =c(-100000,sizeChr1_Sa5Y))+ 
+  geom_vline(xintercept=cassette2[cassette[cassette %in% names(cassette2)]])
+
+ggsave( paste("Results",cassette,"Sa5Y","LargeChromosome","_sVF2.pdf",sep = "_") , plot = last_plot(), path = "/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/Figures_VF2/",
+        width = 106, height = 72.5, units = c("mm"),
+       dpi = 300, limitsize = TRUE) + theme_set(theme_gray(base_size = 6))
+
+
+#Small chromosome
+plotlines<-  ggplot(aes(xmin=rep(1,length(listOfFiles)), xmax=rep(sizeChr2_Sa5Y,length(listOfFiles)), ymin=1:length(listOfFiles)-0.05, ymax= 1:length(listOfFiles)+0.05),data=NULL)+ geom_rect() + 
+  annotate("text", x = -33000, y = (1:length(names(listOfFiles))),  label = names(listOfFiles),size =2)+ scale_y_reverse() 
+
+plotlines + geom_rect(aes(xmin=HGT_vf_Sa5Y_SmallChr$start, xmax=HGT_vf_Sa5Y_SmallChr$end, ymin=HGT_vf_Sa5Y_SmallChr$ymin, ymax=HGT_vf_Sa5Y_SmallChr$ymax),data=NULL,
+                      fill=HGT_vf_Sa5Y_SmallChr$Colorito, alpha=2/4) +
+  annotate("text", x = 120000, y = 1- 2, label = "Small chromosome", size=2)   +
+  theme(axis.line=element_blank(), axis.text.y=element_blank(),      axis.ticks=element_blank(),axis.title.x=element_blank(),
+        axis.title.y=element_blank(),legend.position="none",  panel.border=element_blank() ) + scale_x_continuous(labels = comma, limits =c(-33000,sizeChr2_Sa5Y+500))+ 
+  geom_vline(xintercept=cassette2[cassette[cassette %in% names(cassette2)]])
+
+ggsave(paste("Results",cassette,"Sa5Y","SmallChromosome","_sVF2.pdf",sep = "_"), plot = last_plot(), path = "/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/Figures_VF2/",
+       width = 106, height = 72.5, units = c("mm"),
+       dpi = 300, limitsize = TRUE) + theme_set(theme_gray(base_size = 6))
 ########################################################################################################################################################################
 ########################################################################################################################################################################
+########################################################################################################################################################################
+########################################################################################################################################################################
+########################################################################################################################################################################
+
+
+
+
+ # scripts not used
 ########################################################################################################################################################################
 ################## CONTROL STATISTICS NOEMIE, HGT events
 
@@ -510,7 +604,11 @@ AHGT<-read.table("ALL_HGT_vf.txt",h=F)
 plot(AHGT[AHGT[,2]<4019277,4],AHGT[AHGT[,2]>4019277,4], xlab="HGT event in A1552", ylab="HGT event in Sa5Y", pch=16)
 hist(AHGT[AHGT[,2]<4019277,4],breaks=30, col="black", xlab="Total length HGT", main="")
 
-NOEMIE<-c("75.234","95.786","76.492","129.153","38.295","90.916","73.366","104.938","63.66","96.463","23.138","65.836","74.207","57.691","89.668","35.662","103.776","142.511","34.03","81.253","12.308","116.171","73.68","60.228","38.361","26.306","99.865","85.804","21.768","124.038","42.773","74.343","71.487","39.684","28.528","10.82","49.103","17.083","47.719","44.915","168.241","23.559","100.092","47.549","95.89","56.84","140.235","33.55","68.975","161.271","65.791","81.765","73.121","24.078","58.881","30.162","24.342","145.152","62.483","71.829")
+NOEMIE<-c("75.234","95.786","76.492","129.153","38.295","90.916","73.366","104.938","63.66","96.463","23.138","65.836","74.207","57.691",
+          "89.668","35.662","103.776","142.511","34.03","81.253","12.308","116.171","73.68","60.228","38.361","26.306","99.865","85.804",
+          "21.768","124.038","42.773","74.343","71.487","39.684","28.528","10.82","49.103","17.083","47.719","44.915","168.241","23.559",
+          "100.092","47.549","95.89","56.84","140.235","33.55","68.975","161.271","65.791","81.765","73.121","24.078","58.881","30.162",
+          "24.342","145.152","62.483","71.829")
 AHGT[AHGT[,2]<4019277,]
 plot(NOEMIE,tapply(AHGT[AHGT[,2]<4019277,4], AHGT[AHGT[,2]<4019277,1], sum),  ylab="HGT event calculation", pch=16)
 

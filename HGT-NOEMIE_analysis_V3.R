@@ -1,6 +1,6 @@
 ############################################################################################### 
 ############################################################################################### 
-######## Coverage analysis of HGT event between two Vibrio strains
+######## Genome coverage plot Vibrio
 # IM. v1
 #16.mai.2017
 
@@ -16,33 +16,22 @@ library(ggplot2)
 library("ggtree")
 library(circlize)
 library(plyr )
-require(scales)
 ####################################################################################
 
 
 
 
+
+################################################################################
+## PLOT GENE TRACK FROM BLAST
+####
+
+
 # Template ref
 ########################
-
-#####################CHANGE AT EACH TREATMENT
-template<-read.delim("/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/BamAddRG/Coverage_data/Templates_INFO/Template_C_vf.csv",h=F,sep="\t")
-
-Inserts<-template[grep('blokesch',template$V9),]
-Inserts<-Inserts[grep('insert',Inserts$V3),]
+template<-read.delim("/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/BamAddRG/Coverage_data/Templates_INFO/Template_1.gff",h=F,sep="\t")
 
 
-Coordinates<-template[grep('source',template$V3),]
-Coordinates<-Coordinates[grep('Geneious',Coordinates$V2),]
-
-Coor_LengthA1552<-max(Coordinates[grep('A1552',Coordinates$V1),5])
-
-Coor_LengthA1552_CHR1<-Coordinates[grep('A1552',Coordinates$V1),]
-Coor_LengthA1552_CHR1<-Coor_LengthA1552_CHR1[grep('ch1',Coor_LengthA1552_CHR1$V1),5]     
-
-Coor_Length_Chimera<-max(Coordinates$V5)
-
-Coor_LengthA1552_Sa5Y_CHR1<-max(Coordinates[grep('ch1',Coordinates$V1),5])
 
 template2<-template[grep("CDS",template$V3),c(1,4,5,7,9)]
 
@@ -57,24 +46,104 @@ template4<-cbind.data.frame(template2[,c(1:4)],template3)
 colnames(template4)<-c("chr","start","end","strand","id")
 
 head(template4)
-summary(template4)
 # plot all results in only one track object only one track
 template5<-GRanges(template4)
 autoplot(template5,aes(color = strand, fill = strand))
+
+
+####################################################################################
+####################################################################################
+###### 1.put template coordinates and outside ring
+pdf("~/Documents/V_cholerae/test1/ref_VCA0107/T0_raw_reads/4703_i1.pdf",height =12,width=12)
+cov1<-read.delim("~/Documents/V_cholerae/test1/ref_VCA0107/T0_raw_reads/4703_detail.txt", h=F,sep = "\t")
+cov1$cov[cov1$cov<10]<-0
+#cov1<-read.table("~/Documents/V_cholerae/test1/ref_VCA0107/T0_raw_reads/4703_detail_sup10.txt",h=F,sep='\t')
+head(cov1)
+colnames(cov1)<-c("chr","start","cov")
+
+templat = data.frame(name = c("template"),
+                     start = c(1),
+                     end= c(8057838))
+
+circos.genomicInitialize(templat)
+
+
+# full rectangle all 
+#circos.genomicTrackPlotRegion(ylim =c(0, 1),bg.col =c("#FF000040", "#00FF0040", "#0000FF40"),
+#                              bg.border = NA, track.height = 0.05)
+
+### add rectangle of chromosomes and genomes
+chrom= data.frame(name = c("template","template","template","template","template","template"),
+                     start = c(1,2995339,4019277,6960891,7075966,7077442),
+                     end= c(2995338,4019276,6960890,7075965,7077441,8057838),
+                   value=c(1,0,1,0,1,0))
+
+
+circos.par("track.height" = 0.05)
+
+circos.genomicTrackPlotRegion(chrom, ylim =c(0, 1),
+                              panel.fun =function(region, value, ...) {
+                                i =getI(...)
+                                circos.genomicRect(region, value, ytop = i + 0.1  , ybottom = i - 1.1 ,
+                                                   col =c("gray47", "indianred","grey","hotpink","Blue","hotpink"), ...)
+                              })
+
+
+
+### COVERAGE
+
+covo<-cbind.data.frame(chr=rep("template",length=dim(cov1)[1]),cov1[,c(2,3)])
+covo$cov<-sqrt(covo$cov)
+
+circos.trackPlotRegion(factors = covo$chr, y = covo$cov,panel.fun =function(x, y) {
+ })
+circos.trackPoints(covo$chr, covo$start, covo$cov, col = "black", pch = 16, cex = 0.4)
+dev.off()
+## ADD CDS.
+
+template4
+CDS<-cbind.data.frame(rep("template",length(template4$chr)),template4[,c(2,3,4)])
+
+circos.genomicTrackPlotRegion(CDS, ylim =c(0, 1),
+                              panel.fun =function(region, value, ...) {
+                                i =getI(...)
+                                circos.genomicRect(region, value, ytop = i + 0.3  , ybottom = i - 1.3 , 
+                                                   col= rep(c("black","grey"),(length(template4$chr)/2)) ,...)
+                              })
+
+
+## ADD SNP info
+SNpss<-cbind.data.frame(rep("template",length(tmp.vcf.data$POS)),tmp.vcf.data$POS, tmp.vcf.data$POS +1, rep("+", length(tmp.vcf.data$POS)))
+
+circos.genomicTrackPlotRegion(SNpss, ylim =c(0, 1),
+                              panel.fun =function(region, value, ...) {
+                                i =getI(...)
+                                circos.genomicRect(region, value, ytop = i + 0.3  , ybottom = i - 1.3 , 
+                                                   col= "lightblue4" ,...)
+                              })
+
+
+dev.off()
+
+circos.clear()
+
+#############################################################################################
+#############################################################################################3
+#############################################################################################
+#############################################################################################
+#############################################################################################
 ########################################################################################################################################################################
 ########################################################################################################################################################################
-
-
-
-
-
 ########################################################################################################################################################################
+
+
 ####################################################################################
 # Coverage CALCULATIONS VF
 ####################################################################################
 
-setwd("/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/BamAddRG/Coverage_data/TemplateC1/")
+setwd("/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/BamAddRG/Coverage_data/Template1/")
 filesToProcess <- dir(pattern = "*\\_detail.txt.gz$")  #files to process.
+
 
 ALLconfirmedV2<-list()
 A1552_in_Sa5Y_FF_VF<-list()
@@ -85,7 +154,8 @@ cov_4703<-read.delim(gzfile(i), h=F,sep = "\t")
 
 # gaps in A1552
 ###############
-temp<-cov_4703[c(1:Coor_LengthA1552),]
+temp<-cov_4703[c(1:3015094+1070374),]
+
 ## plot raw data
 #pdf(paste(gsub("sorted","",gsub("\\RG.bam_detail\\.txt","",i)),"A1552_cov.pdf",sep = "_"),width = 12, height = 4)
 #barplot(temp$V3)
@@ -107,8 +177,8 @@ start_A115<-end_A115-(gap_A115-1) # start position of gap
 A115_vf<-cbind.data.frame(paste(rep("Gap",length(gap_A115)),seq(1:length(gap_A115)),sep=""),
                           start_A115,end_A115,gap_A115)
 colnames(A115_vf)<-c("name","start","end","length")
-strain<-ifelse(A115_vf$end < Coor_LengthA1552, "A1552", "SA5Y")
-chrom<-ifelse(A115_vf$end < Coor_LengthA1552_CHR1, "chr1", "chr2")
+strain<-ifelse(A115_vf$end < (3015094+1070374), "A1552", "SA5Y")
+chrom<-ifelse(A115_vf$end < 3015094, "chr1", "chr2")
 A115_vf<-cbind.data.frame(A115_vf,strain,chrom)
 
 
@@ -126,7 +196,7 @@ write.table(A115_vf[A115_vf$length>1000,],paste(gsub("sorted","",gsub("\\RG.bam_
 # Islands in Sa5Y
 
 # gaps in A1552
-temp<-cov_4703[c(Coor_LengthA1552:Coor_Length_Chimera),]
+temp<-cov_4703[c((3015094+1070374):(3015094+1070374+2955400+1096954)),]
 
 # plot raw data
 #pdf(paste(gsub("sorted","",gsub("\\RG.bam_detail\\.txt","",i)),"Sa5Y_cov.pdf",sep = "_"),width = 12, height = 4)
@@ -148,10 +218,10 @@ start_SA5Y<-end_SA5Y-(isle_SA5Y-1) # start position of gap
 
 # making the dataframe
 SA5Y_vf<-cbind.data.frame(paste(rep("Island",length(isle_SA5Y)),seq(1:length(isle_SA5Y)),sep=""),
-                          start_SA5Y+Coor_LengthA1552,end_SA5Y+Coor_LengthA1552,isle_SA5Y)
+                          start_SA5Y+(3015094+1070374),end_SA5Y+(3015094+1070374),isle_SA5Y)
 colnames(SA5Y_vf)<-c("name","start","end","length")
-strain<-ifelse(SA5Y_vf$end < Coor_LengthA1552, "A1552", "SA5Y")
-chrom<-ifelse(SA5Y_vf$end < Coor_LengthA1552_Sa5Y_CHR1, "chr1", "chr2")
+strain<-ifelse(SA5Y_vf$end < (3015094+1070374), "A1552", "SA5Y")
+chrom<-ifelse(SA5Y_vf$end < (3015094+1070374+2955400), "chr1", "chr2")
 SA5Y_vf<-cbind.data.frame(SA5Y_vf,strain,chrom)
 
 
@@ -361,144 +431,11 @@ final_Confirmed<-rbind.data.frame(A1552_in_Sa5Y_FF_VF[[i]],Sa5Y_in_A1552_FF_VF[[
 write.table(final_Confirmed,paste(unlist(strsplit(i,"_"))[1],"Confirmed_10kbthreshold_VF.txt",sep = "_"),sep="\t",quote =F, row.names = F)
 ALLconfirmedV2[[i]]<-final_Confirmed
 }
-########################################################################################################################################################################
-########################################################################################################################################################################
-########################################################################################################################################################################
-
-
-########################################################################################################################################################################
-# Linear PLOT by treatment
-########################################################################################################################################################################
-
- setwd("/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/BamAddRG/Coverage_data/TemplateE/")
-
-# import files
-filesToProcess <- dir(pattern = "*\\_VF.txt$")  #files to pro# if event 3 merged
-table(unlist(lapply(strsplit(filesToProcess,"_"), function (x) x[4])))
-listOfFiles <- lapply(filesToProcess, function(x) tryCatch(read.table(x, header = T),
-                                                           error= function (e) cbind.data.frame(V1="NA",V2="NA",V3="NA",
-                                                                                                V4="NA")))
-names(listOfFiles)<-gsub("_Confirmed_10kbthreshold_VF.txt","",gsub(".xml","",gsub("Blast_","",filesToProcess))   )
-
-
-listOfFiles[[2]]$Gene
-names(listOfFiles)
-
-HGT<-list()
-for (i in 1:length(listOfFiles)){
-
-HGT[[i]]<- cbind.data.frame(listOfFiles[[i]],ymin=rep(i,dim(listOfFiles[[i]])[1])-0.5,ymax=rep(i,dim(listOfFiles[[i]])[1])+0.5  )  
-listOfFiles[[i]]$chrom<-as.character(listOfFiles[[i]]$chrom)
-listOfFiles[[i]][grep("deletion",listOfFiles[[i]]$chrom),1]<-"darkred"
-listOfFiles[[i]][grep("insertion",listOfFiles[[i]]$chrom),1]<-"darkblue"
-HGT[[i]]<- cbind.data.frame(HGT[[i]],Colorito=listOfFiles[[i]]$chrom)
-names(HGT)[i]<-names(listOfFiles)[i]
-}
-HGT_vf<-rbind.data.frame(HGT[[1]],HGT[[2]])
-for (i in 3:length(HGT)){
-HGT_vf<-rbind.data.frame(HGT_vf,HGT[[i]])}
-#
-#
-#
-#
-#
-
-# PLOT ALL CHIMERA
-pdf("/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/Figures_VF2/Results_TemplateC1.pdf", height = 2.8346, width=4.17323)
-plotlines<-  ggplot(aes(xmin=rep(1,length(listOfFiles)), xmax=rep(Coor_Length_Chimera,length(listOfFiles)), ymin=1:length(listOfFiles)-0.05, ymax= 1:length(listOfFiles)+0.05),data=NULL)+ geom_rect() + 
-  annotate("text", x = -100000, y = (1:length(names(listOfFiles))), label = names(listOfFiles))+ scale_y_reverse()+ theme_set(theme_gray(base_size = 1))
-
-plotlines + geom_rect(aes(xmin=HGT_vf$start, xmax=HGT_vf$end, ymin=HGT_vf$ymin, ymax=HGT_vf$ymax),data=NULL,
-                      fill=HGT_vf$Colorito, alpha=2/4)  + geom_vline(xintercept=Coor_LengthA1552) +
-  annotate("text", x = 400000, y = 1-  2, label = "A1552 template")   +
-  annotate("text", x = 5000000, y = 1 - 2, label = "Sa5Y template")   +
-  annotate("text", x = Inserts$V4[1], y = length(names(listOfFiles)) +1, label = "Insert") +
-  ggtitle("HGT treatment C1")  + 
-  theme(axis.line=element_blank(),axis.text.y=element_blank(), axis.ticks=element_blank(),axis.title.x=element_blank(),
-         axis.title.y=element_blank(),legend.position="none",  panel.border=element_blank() ) + scale_x_continuous(labels = comma) 
 
 
 
-
-ggsave("Results_TemplateC1.pdf", plot = last_plot(), path = "/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/Figures_VF2/",
-       width = 106, height = 72.5, units = c("mm"),
-       dpi = 300, limitsize = TRUE) + theme_set(theme_gray(base_size = 6))
-
-
-
-
-# PLOT A1552 template
-HGT_vf_A1552<-HGT_vf[HGT_vf$end<Coor_LengthA1552,]
-pdf("/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/Results_TemplateC1_A1552.pdf", height = 10,width=14)
-plotlines<-  ggplot(aes(xmin=rep(1,length(listOfFiles)), xmax=rep(Coor_LengthA1552,length(listOfFiles)), ymin=1:length(listOfFiles)-0.05, ymax= 1:length(listOfFiles)+0.05),data=NULL)+ geom_rect() + 
-  annotate("text", x = -100000, y = (1:length(names(listOfFiles))), label = names(listOfFiles))
-
-plotlines + geom_rect(aes(xmin=HGT_vf_A1552$start, xmax=HGT_vf_A1552$end, ymin=HGT_vf_A1552$ymin, ymax=HGT_vf_A1552$ymax),data=NULL,
-                      fill=HGT_vf_A1552$Colorito, alpha=2/4)  + geom_vline(xintercept=Coor_LengthA1552_CHR1) +
-  annotate("text", x = 400000, y = length(names(listOfFiles)) + 2, label = "Chromosome I", fontface=2)   +
-  annotate("text", x = 3300000, y = length(names(listOfFiles)) + 2, label = "Chromosome II", fontface=2)   +
-  annotate("text", x = Inserts$V4[1]-Coor_LengthA1552, y = 0, label = "Insert", fontface=2) +
-  ggtitle("HGT treatment C1 A1552") + theme(plot.title = element_text(size = 20, face = "bold" )) + 
-  theme(axis.line=element_blank(), axis.text.y=element_blank(),      axis.ticks=element_blank(),axis.title.x=element_blank(),
-        axis.title.y=element_blank(),legend.position="none",  panel.border=element_blank() ) + scale_x_continuous(labels = comma)
-dev.off()
-
-# PLOT Sa5Y template
-HGT_vf_Sa5Y<-HGT_vf[HGT_vf$start>Coor_LengthA1552,]
-pdf("/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/Results_TemplateC1_Sa5Y.pdf", height = 10,width=14)
-plotlines<-  ggplot(aes(xmin=rep(Coor_LengthA1552,length(listOfFiles)), xmax=rep(Coor_Length_Chimera,length(listOfFiles)), ymin=1:length(listOfFiles)-0.05, ymax= 1:length(listOfFiles)+0.05),data=NULL)+ geom_rect() + 
-  annotate("text", x = 3850000, y = (1:length(names(listOfFiles))), label = names(listOfFiles))
-
-plotlines + geom_rect(aes(xmin=HGT_vf_Sa5Y$start, xmax=HGT_vf_Sa5Y$end, ymin=HGT_vf_Sa5Y$ymin, ymax=HGT_vf_Sa5Y$ymax),data=NULL,
-                      fill=HGT_vf_Sa5Y$Colorito, alpha=2/4)  + geom_vline(xintercept=Coor_LengthA1552_Sa5Y_CHR1) +
-  annotate("text", x = 4400000, y = length(names(listOfFiles)) + 2, label = "Chromosome I", fontface=2)   +
-  annotate("text", x = 7300000, y = length(names(listOfFiles)) + 2, label = "Chromosome II", fontface=2)   +
-  annotate("text", x = Inserts$V4[1], y = 0, label = "Insert", fontface=2) +
-  ggtitle("HGT treatment C1 Sa5Y") + theme(plot.title = element_text(size = 20, face = "bold" )) + 
-  theme(axis.line=element_blank(), axis.text.y=element_blank(),      axis.ticks=element_blank(),axis.title.x=element_blank(),
-        axis.title.y=element_blank(),legend.position="none",  panel.border=element_blank() ) + scale_x_continuous(labels = comma)
-dev.off()
-
-###
-
-# Ploting separately CHR1 CHR2 for A1552
-sizeChr1_A1552<- 3015094
-sizeChr2_A1552 <- 1070374
-
-HGT_vf_A1552<-HGT_vf[HGT_vf$end<Coor_LengthA1552,]
-HGT_vf_A1552_LargeChr<-HGT_vf_A1552[HGT_vf_A1552$start< ( sizeChr1_A1552 + 1),]
-HGT_vf_A1552_SmallChr<-HGT_vf_A1552[HGT_vf_A1552$start> ( sizeChr1_A1552 ),]
-HGT_vf_A1552_SmallChr$start<-HGT_vf_A1552_SmallChr$start-sizeChr1_A1552
-HGT_vf_A1552_SmallChr$end<-HGT_vf_A1552_SmallChr$end-sizeChr1_A1552
-
-#large chromosome
-pdf("/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/FIGURES_VF/Results_TemplateE_A1552_LargeChromosome.pdf", height = 10,width=14)
-plotlines<-  ggplot(aes(xmin=rep(1,length(listOfFiles)), xmax=rep(sizeChr1_A1552,length(listOfFiles)), ymin=1:length(listOfFiles)-0.05, ymax= 1:length(listOfFiles)+0.05),data=NULL)+ geom_rect() + 
-  annotate("text", x = -100000, y = (1:length(names(listOfFiles))), label = names(listOfFiles))
-
-plotlines + geom_rect(aes(xmin=HGT_vf_A1552_LargeChr$start, xmax=HGT_vf_A1552_LargeChr$end, ymin=HGT_vf_A1552_LargeChr$ymin, ymax=HGT_vf_A1552_LargeChr$ymax),data=NULL,
-                      fill=HGT_vf_A1552_LargeChr$Colorito, alpha=2/4) +
-  annotate("text", x = 400000, y = length(names(listOfFiles)) + 2, label = "Large chromosome", fontface=2)   +
-  ggtitle("Treatment E A1552") + theme(plot.title = element_text(size = 20, face = "bold" )) + 
-  theme(axis.line=element_blank(), axis.text.y=element_blank(),      axis.ticks=element_blank(),axis.title.x=element_blank(),
-        axis.title.y=element_blank(),legend.position="none",  panel.border=element_blank() ) + scale_x_continuous(labels = comma, limits =c(-100000,sizeChr1_A1552+20000))
-dev.off()
-#Small chromosome
-pdf("/media/imateus/IvanHD2_Ubuntu/Noemie_HGT_Analysis/FIGURES_VF/Results_TemplateE_A1552_SmallChromosome.pdf", height = 10,width=14)
-plotlines<-  ggplot(aes(xmin=rep(1,length(listOfFiles)), xmax=rep(sizeChr2_A1552,length(listOfFiles)), ymin=1:length(listOfFiles)-0.05, ymax= 1:length(listOfFiles)+0.05),data=NULL)+ geom_rect() + 
-  annotate("text", x = -33000, y = (1:length(names(listOfFiles))), label = names(listOfFiles))
-
-plotlines + geom_rect(aes(xmin=HGT_vf_A1552_SmallChr$start, xmax=HGT_vf_A1552_SmallChr$end, ymin=HGT_vf_A1552_SmallChr$ymin, ymax=HGT_vf_A1552_SmallChr$ymax),data=NULL,
-                      fill=HGT_vf_A1552_SmallChr$Colorito, alpha=2/4) +
-  annotate("text", x = 120000, y = length(names(listOfFiles)) + 2, label = "Small chromosome", fontface=2)   +
-  ggtitle("Treatment E A1552") + theme(plot.title = element_text(size = 20, face = "bold" )) + 
-  theme(axis.line=element_blank(), axis.text.y=element_blank(),      axis.ticks=element_blank(),axis.title.x=element_blank(),
-        axis.title.y=element_blank(),legend.position="none",  panel.border=element_blank() ) + scale_x_continuous(labels = comma, limits =c(-33000,sizeChr2_A1552))
-dev.off()
-
-
-
-########################################################################################################################################################################
+#write.table(ALLconfirmed,paste(gsub("sorted","",gsub("\\RG.bam_detail\\.txt","",i)),"Confirmed.txt",sep = "_"),sep="\t",quote =F)
+data.frame(matrix(unlist(ALLconfirmedV2),nrow = 60, byrow=T))
 ########################################################################################################################################################################
 ########################################################################################################################################################################
 ################## CONTROL STATISTICS NOEMIE, HGT events
@@ -561,10 +498,6 @@ plot(df[grep("ins",df$V1),4],df[grep("del",df$V1),4], pch=16, cex=1.5, ylab="Del
 
 
 ########################################################################################################################################################################
-
-
-
-
 
 ########################################################################################################################################################################
 ########################################################################################################################################################################
@@ -785,8 +718,8 @@ A115_1k_CDS<-cbind.data.frame(A115_vf[A115_vf$length>1000,],unlist(gene_is_nam))
 colnames(A115_1k_CDS)[length(colnames(A115_1k_CDS))]<-"CDS"
 A115_1k_CDS
 write.table(A115_1k_CDS,paste(gsub("sorted","",gsub("\\RG.bam_detail\\.txt","",i)),"Gaps1kb_CDS.txt",sep = "_"),sep="\t",quote =F)
-########################################################################################################################################################################
-########################################################################################################################################################################
+####################################################################################
+####################################################################################
 
 
 
@@ -890,6 +823,6 @@ dev.off()
 
 circos.clear()
 
-##########################################################################################################################################################################
-##########################################################################################################################################################################
+######################################################################################
+######################################################################################
 
