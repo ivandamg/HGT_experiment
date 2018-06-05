@@ -26,5 +26,27 @@ Scripts necessary to the analysis of HGT event between a pair of bacteria.
         # processing time < 5 sec
         for i in $(ls *Pair.fastq.gz); do echo $i ; gzip -d $i ;done
         
-2. 
+2. Mapping
+
+- make index
+
+           /home/imateus/software/novocraft/novoindex  -s 1 -n All_chromosomes-Sa5Y-VCA0107-frt-kan-frt All_chromosomes-Sa5Y-VCA0107-frt-kan-frt.nix All_chromosomes-Sa5Y-VCA0107-frt-kan-frt.fasta 
+
+          /home/imateus/software/novocraft/novoindex  -s 1 -n All_chromosomes-Sa5Y-VCA0747-frt-kan-frt All_chromosomes-Sa5Y-VCA0747-frt-kan-frt.nix All_chromosomes-Sa5Y-VCA0747-frt-kan-frt.fasta
+
+
+
+- mapping
+
+                a=0;for i in $(ls *R1*Pair.fastq | sort -t'_' -k3); do a=$((a + 1)); b=$(echo $i | cut -d'.' -f1 | cut -d'_' -f5); c=$(ls *_R2*$b*.fastq); echo $i" "$c ; /home/imateus/software/novocraft/novoalign -d /home/imateus/Documents/V_cholerae/test1/ref_VCA0107/reference_template/*.nix -f $i $c -o SAM 2> 'stats'$i'VCA0107.txt' > $i'_VCA0107.sam'; done
+
+                a=0;for i in $(ls *R1*Pair.fastq | sort -t'_' -k3); do a=$((a + 1)); b=$(echo $i | cut -d'.' -f1 | cut -d'_' -f5); c=$(ls *_R2*$b*.fastq); echo $i" "$c ; /home/imateus/software/novocraft/novoalign -d /home/imateus/Documents/V_cholerae/test1/ref_VCA0747/reference_template/*.nix -f $i $c -o SAM 2> 'stats'$i'VCA0747.txt' > $i'_VCA0747.sam'; done
+
+
+- Filter to allowd only 3 mismatches only
+
+        a=0;for i in $(ls *R1*Pair.fastq | sort -t'_' -k3); do a=$((a + 1)); b=$(echo $i | cut -d'.' -f1 | cut -d'_' -f5); c=$(ls *_R2*$b*.fastq); echo $i" "$c ;
+        /home/imateus/software/novocraft/novoalign -d /home/imateus/Documents/V_cholerae/test1/ref_VCA0107/reference_template/*.nix -f $i $c -t 90 -o SAM 2> 'stats'$i'VCA0107.txt' > $i'_VCA0107.sam'; done
+
+
 
