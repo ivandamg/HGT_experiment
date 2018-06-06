@@ -1,0 +1,45 @@
+######################################################################  Whole genome comparison between alignements ##############################################################################################
+#########################################################SNP ANALYSIS
+####################################################################################
+
+
+
+	######3 MUMMER
+##########################################
+
+# create comparison delta file
+
+~/software/Mummer4/mummer-4.0.0beta2/nucmer --prefix=N16961_A1552 N16961_PacBio_BloLabStrain.fasta VC-A1552_pacbio.fasta 
+~/software/Mummer4/mummer-4.0.0beta2/nucmer --prefix=N16961_Sa5Y N16961_PacBio_BloLabStrain.fasta VC-Sa5Y_pacbio.fasta 
+~/software/Mummer4/mummer-4.0.0beta2/nucmer --prefix=A1552_Sa5Y VC-A1552_pacbio.fasta VC-Sa5Y_pacbio.fasta 
+
+
+
+
+
+
+
+# delete conflicting repears copies
+
+
+for i in $(ls *.delta); do echo $i ; ~/software/Mummer4/mummer-4.0.0beta2/delta-filter -r -q $i > $(echo $i | cut -d'.' -f1).filter; done 
+
+
+# Make comparison
+
+for i in $(ls *.filter); do echo $i ; ~/software/Mummer4/mummer-4.0.0beta2/dnadiff -d $i ; mv out.1delta $(echo $i | cut -d'.' -f1).1delta ; mv out.mdelta $(echo $i | cut -d'.' -f1).mdelta ; mv out.1coords $(echo $i | cut -d'.' -f1).1coords ; mv out.mcoords $(echo $i | cut -d'.' -f1).mcoords ; mv out.snps $(echo $i | cut -d'.' -f1).snps ; mv out.rdiff $(echo $i | cut -d'.' -f1).rdiff ; mv out.qdiff $(echo $i | cut -d'.' -f1).qdiff ; mv out.report $(echo $i | cut -d'.' -f1).report ;done
+
+
+######3 MAUVE
+##########################################
+
+MAKE MULTIPLE ALIGNEMENT
+
+2. CREATE SNP FILE BY CLICKING ON EXPORT. PUT SAME NAME WITH EXTENSION .SNP
+
+3. IN R USE SCRIPT SNP_MAUVE_plot.R  
+
+				- > Create matrix of SNP between STRAINS
+				- > Create Network of SNP 
+				- > Create hierarchical clustering dendogram 
+				
