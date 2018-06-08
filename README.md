@@ -9,7 +9,6 @@ Scripts necessary to the analysis of HGT event between a pair of bacteria.
 
 
 1. Trimming
-
         # leading base quality 3
         # trailing base quality 3
         # phred quality of sequence, by sliding window of 4 bases and minimum phred score of 20
