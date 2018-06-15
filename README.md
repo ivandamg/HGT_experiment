@@ -8,7 +8,7 @@ Scripts necessary to the analysis of HGT event between a pair of bacteria.
 
 
 
-1. Trimming
+# 1. Trimming
 
         # leading base quality 3
         # trailing base quality 3
@@ -26,7 +26,7 @@ Scripts necessary to the analysis of HGT event between a pair of bacteria.
         # processing time < 5 sec
         for i in $(ls *Pair.fastq.gz); do echo $i ; gzip -d $i ;done
         
-2. Mapping
+# 2. Mapping
 - make index
 
            /home/imateus/software/novocraft/novoindex  -s 1 -n All_chromosomes-Sa5Y-VCA0107-frt-kan-frt All_chromosomes-Sa5Y-VCA0107-frt-kan-frt.nix All_chromosomes-Sa5Y-VCA0107-frt-kan-frt.fasta 
